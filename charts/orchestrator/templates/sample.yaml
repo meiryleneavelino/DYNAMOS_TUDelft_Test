@@ -17,25 +17,25 @@
 #       containers:
 #       - name: query-service
 #         image: query-service:latest
-#         imagePullPolicy: Always
+#         imagePullPolicy: IfNotPresent
 #         env:
 #         - name: ORDER
 #           value: 1
 #       - name: anonymize-service
 #         image: anonymize-service:latest
-#         imagePullPolicy: Always
+#         imagePullPolicy: IfNotPresent
 #         env:
 #         - name: ORDER
 #           value: 2
 #       - name: algorithm-service
 #         image: algorithm-service:latest
-#         imagePullPolicy: Always
+#         imagePullPolicy: IfNotPresent
 #         env:
 #         - name: ORDER
 #           value: -1
 #       - name: sidecar
 #         image: {{ .Values.dockerArtifactAccount }}/sidecar:latest
-#         imagePullPolicy: Always
+#         imagePullPolicy: IfNotPresent
 #         ports:
 #         - containerPort: 3005
 #         env:

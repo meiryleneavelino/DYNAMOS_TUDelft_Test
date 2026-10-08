@@ -5,6 +5,7 @@ package dynamos;
 option go_package = "github.com/DYNAMOS-UVA/DYNAMOS/pkg/proto";
 import "google/protobuf/empty.proto";
 import "google/protobuf/any.proto";
+import "google/protobuf/struct.proto";
 import "generic.proto";
 import "microserviceCommunication.proto";
 
@@ -91,6 +92,7 @@ message ValidationResponse {
   bool request_approved = 7;
   UserArchetypes valid_archetypes = 8;
   map<string,bool> options = 9;
+  google.protobuf.Struct training = 10;
 }
 
 message User {
@@ -104,6 +106,7 @@ message RequestApproval {
   repeated string data_providers = 3;
   string destination_queue = 4;
   map<string, bool> options = 5;
+  google.protobuf.Struct training = 6;
 }
 
 message RequestApprovalResponse  {
@@ -133,6 +136,7 @@ message CompositionRequest {
     string destination_queue = 6;
     string job_name = 7;
     string local_job_name = 8; // for saving the generated local job name with this composition request
+    google.protobuf.Struct training = 9;
 }
 
 message SqlDataRequest {

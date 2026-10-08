@@ -250,6 +250,9 @@ func (s *serverInstance) SendMicroserviceComm(ctx context.Context, in *pb.Micros
 		Type:          in.Type,
 	}
 	logger.Sugar().Debugf("SendMicroserviceComm destination queue: %s", in.RequestMetadata.DestinationQueue)
+	if in.RequestType == "mlTrainingRequest" {
+		return send(ctx, message, in.RequestMetadata.DestinationQueue, s, etcd.WithMaxElapsedTime(10*time.Second), etcd.WithJsonTrace())
+	}
 	go send(ctx, message, in.RequestMetadata.DestinationQueue, s, etcd.WithMaxElapsedTime(10*time.Second), etcd.WithJsonTrace())
 
 	return &emptypb.Empty{}, nil

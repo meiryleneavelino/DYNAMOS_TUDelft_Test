@@ -72,6 +72,9 @@ func main() {
 	c = lib.InitializeSidecarMessaging(conn, &pb.InitRequest{ServiceName: fmt.Sprintf("%s-in", serviceName), RoutingKey: fmt.Sprintf("%s-in", serviceName), QueueAutoDelete: false})
 
 	registerAgent()
+	if os.Getenv("TRAINING_ENABLED") == "true" {
+		go maintainTrainingRegistration()
+	}
 
 	// Define a WaitGroup
 	var wg sync.WaitGroup
@@ -88,6 +91,11 @@ func main() {
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
 	agentMux := http.NewServeMux()
+	if os.Getenv("TRAINING_ENABLED") == "true" {
+		agentMux.HandleFunc("/rounds", trainingRoundsHandler)
+		agentMux.HandleFunc("/rounds/", trainingRoundsHandler)
+		agentMux.HandleFunc("/health", func(writer http.ResponseWriter, request *http.Request) { writer.Write([]byte(`{"status":"ok","role":"dynamos-agent"}`)) })
+	}
 	agentMux.Handle(fmt.Sprintf("/agent/v1/sqlDataRequest/%s", strings.ToLower(serviceName)), &ochttp.Handler{Handler: sqlDataRequestHandler()})
 
 	// apiMux.Handle("/archetypes/", &ochttp.Handler{Handler: archetypesHandler(etcdClient, "/archetypes")})
@@ -95,6 +103,11 @@ func main() {
 	wrappedAgentMux := authMiddleware(agentMux)
 
 	mux := http.NewServeMux()
+	if os.Getenv("TRAINING_ENABLED") == "true" {
+		mux.Handle("/rounds", agentMux)
+		mux.Handle("/rounds/", agentMux)
+		mux.Handle("/health", agentMux)
+	}
 	mux.Handle(fmt.Sprintf("/agent/v1/sqlDataRequest/%s", strings.ToLower(serviceName)), wrappedAgentMux)
 
 	logger.Sugar().Infow("Starting http server on: ", "port", port)

@@ -23,6 +23,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strconv"
 
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/lib"
@@ -42,6 +43,8 @@ func (s *serverInstance) StopReceivingRabbit(ctx context.Context, in *pb.StopReq
 
 		// Signal the stop channel
 		close(s.consumerManager.stopChan)
+	} else if os.Getenv("TEMPORARY_JOB") == "true" {
+		trainingStopOnce.Do(func() { close(stop) })
 	}
 
 	return &emptypb.Empty{}, nil

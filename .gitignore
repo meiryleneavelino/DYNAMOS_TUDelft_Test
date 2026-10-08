@@ -7,6 +7,7 @@ dynamos.egg.info/*
 *dynamos.egg-info
 .obsidian/
 .venv
+.env
 .query
 # Binaries for programs and plugins
 *.exe
@@ -35,6 +36,7 @@ node_modules
 .env
 .env.local
 datasets/*.csv
+configuration/federated-training/.local/
 
 *.drawio.bkp
 *.drawio.dtmp

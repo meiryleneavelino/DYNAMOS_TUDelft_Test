@@ -67,6 +67,7 @@ type Relation struct {
 	DataSets                []string `json:"dataSets"`
 	AllowedArchetypes       []string `json:"allowedArchetypes"`
 	AllowedComputeProviders []string `json:"allowedComputeProviders"`
+	AllowedAlgorithms       []string `json:"allowedAlgorithms,omitempty"`
 }
 
 type Agreement struct {

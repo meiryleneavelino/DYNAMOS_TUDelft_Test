@@ -1,0 +1,95 @@
+{{- if .Values.tudelftEnabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: job-creator-tudelft
+  namespace: tudelft
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: job-creator-tudelft
+  namespace: tudelft
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: job-creator
+subjects:
+  - kind: ServiceAccount
+    name: job-creator-tudelft
+    namespace: tudelft
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tudelft
+  namespace: tudelft
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tudelft
+  template:
+    metadata:
+      labels:
+        app: tudelft
+    spec:
+      serviceAccountName: job-creator-tudelft
+      containers:
+        - name: tudelft
+          image: {{ .Values.dockerArtifactAccount }}/agent:{{ .Values.branchNameTag }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATA_STEWARD_NAME
+              value: TUDELFT
+            - name: OC_AGENT_HOST
+              value: {{ .Values.tracingEndpoint | quote }}
+        - name: sidecar
+          image: {{ .Values.dockerArtifactAccount }}/sidecar:{{ .Values.branchNameTag }}
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: AMQ_USER
+              value: normal_user
+            - name: AMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbit
+                  key: password
+            - name: OC_AGENT_HOST
+              value: {{ .Values.tracingEndpoint | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tudelft
+  namespace: tudelft
+spec:
+  selector:
+    app: tudelft
+  ports:
+    - name: http-tudelft-api
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: tudelft-ingress
+  namespace: tudelft
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: tudelft.tudelft.svc.cluster.local
+      http:
+        paths:
+          - path: /agent/v1/sqlDataRequest/tudelft
+            pathType: Prefix
+            backend:
+              service:
+                name: tudelft
+                port:
+                  number: 8080
+{{- end }}

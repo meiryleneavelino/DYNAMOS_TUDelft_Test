@@ -7,6 +7,7 @@ import (
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/api"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/etcd"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/lib"
+	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/training"
 	pb "github.com/DYNAMOS-UVA/DYNAMOS/pkg/proto"
 )
 
@@ -31,6 +32,7 @@ func checkRequestApproval(ctx context.Context, requestApproval *pb.RequestApprov
 		RequestApproved: false,
 		ValidArchetypes: &pb.UserArchetypes{Archetypes: make(map[string]*pb.UserAllowedArchetypes)},
 		Options:         make(map[string]bool),
+		Training:        requestApproval.Training,
 	}
 
 	if requestApproval.Options != nil && len(requestApproval.Options) > 0 {
@@ -38,6 +40,12 @@ func checkRequestApproval(ctx context.Context, requestApproval *pb.RequestApprov
 	}
 
 	getValidAgreements(requestApproval.DataProviders, requestApproval.User, &agreements, protoRequest)
+	if requestApproval.Type == training.RequestType &&
+		(len(protoRequest.InvalidDataproviders) > 0 || len(protoRequest.ValidDataproviders) != len(requestApproval.DataProviders)) {
+		protoRequest.ValidDataproviders = map[string]*pb.DataProvider{}
+		c.SendValidationResponse(ctx, protoRequest)
+		return nil
+	}
 	if len(agreements) == 0 || len(protoRequest.ValidDataproviders) == 0 {
 		logger.Sugar().Info("No agreements exist for this user ")
 		c.SendValidationResponse(ctx, protoRequest)
@@ -85,6 +93,22 @@ func getValidAgreements(dataProviders []string, requestUser *pb.User, agreements
 		if !ok {
 			invalidDataproviders = append(invalidDataproviders, steward)
 			continue
+		}
+		if protoRequest.RequestType == training.RequestType {
+			var request training.Request
+			var permissions struct {
+				Relations map[string]struct {
+					AllowedAlgorithms []string `json:"allowedAlgorithms"`
+				} `json:"relations"`
+			}
+			encoded, marshalErr := json.Marshal(protoRequest.Training.AsMap())
+			if marshalErr != nil || json.Unmarshal(encoded, &request) != nil ||
+				json.Unmarshal([]byte(output), &permissions) != nil ||
+				!request.AllowedBy(user.RequestTypes, user.DataSets,
+					permissions.Relations[requestUser.UserName].AllowedAlgorithms, user.AllowedArchetypes) {
+				invalidDataproviders = append(invalidDataproviders, steward)
+				continue
+			}
 		}
 
 		matchedArchetypes, _ := lib.GetMatchedElements(user.AllowedArchetypes, agreement.Archetypes)

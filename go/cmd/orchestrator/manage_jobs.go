@@ -9,6 +9,7 @@ import (
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/api"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/etcd"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/lib"
+	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/training"
 	pb "github.com/DYNAMOS-UVA/DYNAMOS/pkg/proto"
 	"github.com/google/uuid"
 )
@@ -319,6 +320,13 @@ func getJobAcrossAgents(ctx context.Context, targetMap map[string]*pb.Compositio
 func handleRequestApproval(ctx context.Context, validationResponse *pb.ValidationResponse) {
 	result := &pb.RequestApprovalResponse{Type: "requestApprovalResponse", RequestMetadata: &pb.RequestMetadata{DestinationQueue: "api-gateway-in"}}
 	result.User = validationResponse.User
+	if validationResponse.RequestType == training.RequestType {
+		if err := validateTrainingApproval(validationResponse); err != nil {
+			result.Error = err.Error()
+			c.SendRequestApprovalResponse(ctx, result)
+			return
+		}
+	}
 
 	authorizedProviders, err := getAuthorizedProviders(validationResponse)
 	if err != nil {
@@ -331,6 +339,14 @@ func handleRequestApproval(ctx context.Context, validationResponse *pb.Validatio
 		// TODO Respond with the following to the rabbitmq queue
 		// []byte("Request was processed, but no agreements or available dataproviders have been found")
 		result.Error = "Request was processed, but no agreements or available dataproviders have been found"
+		c.SendRequestApprovalResponse(ctx, result)
+		return
+	}
+	if validationResponse.RequestType == training.RequestType && validationResponse.Options["_ml_revalidate"] {
+		result.AuthorizedProviders = make(map[string]string)
+		for organization, provider := range authorizedProviders {
+			result.AuthorizedProviders[organization] = provider.Dns
+		}
 		c.SendRequestApprovalResponse(ctx, result)
 		return
 	}

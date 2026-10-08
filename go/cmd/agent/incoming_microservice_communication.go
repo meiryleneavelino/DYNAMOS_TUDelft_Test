@@ -116,6 +116,9 @@ func handleMicroserviceCommunication(ctx context.Context, grpcMsg *pb.SideCarMes
 	}
 
 	correlationId := msComm.RequestMetadata.CorrelationId
+	if msComm.RequestType == "mlTrainingRequest" {
+		return handleTrainingResult(msComm)
+	}
 
 	if isJobWaiting(ctx, msComm, correlationId) {
 		return nil

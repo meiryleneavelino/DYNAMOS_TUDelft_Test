@@ -6,6 +6,7 @@ import (
 
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/etcd"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/lib"
+	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/training"
 	pb "github.com/DYNAMOS-UVA/DYNAMOS/pkg/proto"
 	"google.golang.org/protobuf/types/known/anypb"
 )
@@ -34,6 +35,10 @@ func handleIncomingMessages(ctx context.Context, grpcMsg *pb.SideCarMessage) err
 		}
 
 		// Call the handler in a separate goroutine to process asynchronously
+		if compositionRequest.RequestType == training.RequestType {
+			key := fmt.Sprintf("/agents/jobs/%s/%s/%s", serviceName, compositionRequest.User.UserName, compositionRequest.JobName)
+			return etcd.SaveStructToEtcd[*pb.CompositionRequest](etcdClient, key, compositionRequest)
+		}
 		go compositionRequestHandler(ctx, compositionRequest)
 
 	case "microserviceCommunication":

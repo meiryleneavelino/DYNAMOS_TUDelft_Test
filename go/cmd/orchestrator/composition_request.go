@@ -8,6 +8,8 @@ import (
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/api"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/etcd"
 	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/lib"
+	"github.com/DYNAMOS-UVA/DYNAMOS/pkg/training"
+	"github.com/google/uuid"
 	pb "github.com/DYNAMOS-UVA/DYNAMOS/pkg/proto"
 	"go.opencensus.io/trace"
 )
@@ -26,7 +28,11 @@ func startCompositionRequest(ctx context.Context, validationResponse *pb.Validat
 	ctx, span := trace.StartSpan(ctx, "startCompositionRequest")
 	defer span.End()
 
-	archetype, err := chooseArchetype(validationResponse, authorizedProviders)
+	archetype := "computeToData"
+	var err error
+	if validationResponse.RequestType != training.RequestType {
+		archetype, err = chooseArchetype(validationResponse, authorizedProviders)
+	}
 	if err != nil {
 		return nil, ctx, err
 	}
@@ -43,6 +49,10 @@ func startCompositionRequest(ctx context.Context, validationResponse *pb.Validat
 	compositionRequest.ArchetypeId = archetype
 	compositionRequest.RequestType = validationResponse.RequestType
 	compositionRequest.JobName = lib.GenerateJobName(validationResponse.User.UserName, 8)
+	compositionRequest.Training = validationResponse.Training
+	if validationResponse.RequestType == training.RequestType {
+		compositionRequest.JobName = uuid.NewString()
+	}
 
 	// Save the ActiveJob to etcd
 	// var activeJob = &pb.ActiveJob{

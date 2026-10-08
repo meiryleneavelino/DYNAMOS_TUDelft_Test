@@ -1,0 +1,17 @@
+{{- if .Values.tudelftEnabled }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tudelft
+  annotations:
+    helm.sh/resource-policy: keep
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: rabbit
+  namespace: tudelft
+type: Opaque
+data:
+  password: {{ .Values.secret.password | b64enc | quote }}
+{{- end }}

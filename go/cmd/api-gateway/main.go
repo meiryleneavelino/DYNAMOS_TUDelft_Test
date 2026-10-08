@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
@@ -75,6 +76,9 @@ func main() {
 	apiMux := http.NewServeMux()
 	apiMux.Handle("/requestApproval", &ochttp.Handler{Handler: requestHandler()})
 	apiMux.Handle("/getAvailableProviders", &ochttp.Handler{Handler: availableProvidersHandler()})
+	if os.Getenv("TRAINING_ENABLED") == "true" {
+		apiMux.HandleFunc("/ml/", trainingHandler)
+	}
 	// go socketServer(apiMux)
 	// server := socketio.NewServer(&engineio.Options{
 	// 	Transports: []transport.Transport{

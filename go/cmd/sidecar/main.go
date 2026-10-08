@@ -20,6 +20,7 @@ var (
 	logger           = lib.InitLogger(logLevel)
 	stop             = make(chan struct{}) // channel to tell the server to stop
 	sendMutex        = &sync.Mutex{}
+	trainingStopOnce = &sync.Once{}
 	running_messages = 0
 )
 
